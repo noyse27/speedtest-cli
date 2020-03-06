@@ -63,41 +63,41 @@ while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
     $zeile['download'] = '<b>'.$dprogress.'</b> MB/s';
     $zeile['upload'] = '<b>'.$uprogress.'</b> MB/s';
 
-    echo "<tr>";
-    echo "<td>". $zeile['id'] . "</td>";
-    echo "<td>". $zeile['server_id'] . "</td>";
-    echo "<td>". $zeile['sponsor'] . "</td>";
-    echo "<td>". $zeile['server_name'] . "</td>";
-    echo "<td>". $zeile['datum'] . "</td>";
-    echo "<td>". $zeile['distance'] . "</td>";
-    echo "<td>". $zeile['ping'] . "</td>";
+    echo "<tr> <br>";
+    echo "<td>". $zeile['id'] . "</td> <br>";
+    echo "<td>". $zeile['server_id'] . "</td> <br>";
+    echo "<td>". $zeile['sponsor'] . "</td> <br>";
+    echo "<td>". $zeile['server_name'] . "</td> <br>";
+    echo "<td>". $zeile['datum'] . "</td>\n";
+    echo "<td>". $zeile['distance'] . "</td> <br>";
+    echo "<td>". $zeile['ping'] . "</td> <br>";
     if($dperc < 50)
     {
-        echo "<td style=\"background-color:#f00; \">". $zeile['download'] . "</td>";
+        echo "<td style=\"background-color:#f00; \">". $zeile['download'] . "</td> <br>";
     }elseif ($dperc >=50 && $dperc < 90){
-        echo "<td style=\"background-color:#ff0; \">". $zeile['download'] . "</td>";
+        echo "<td style=\"background-color:#ff0; \">". $zeile['download'] . "</td> <br>";
     }elseif($dperc >=90){
-        echo "<td style=\"background-color:#0f0; \">". $zeile['download'] . "</td>";
+        echo "<td style=\"background-color:#0f0; \">". $zeile['download'] . "</td> <br>";
     }
     if($uperc < 50)
     {
-        echo "<td style=\"background-color:#f00; \">". $zeile['upload'] . "</td>";
+        echo "<td style=\"background-color:#f00; \">". $zeile['upload'] . "</td> <br>";
     }elseif ($uperc >=50 && $uperc < 90){
-        echo "<td style=\"background-color:#ff0; \">". $zeile['upload'] . "</td>";
+        echo "<td style=\"background-color:#ff0; \">". $zeile['upload'] . "</td> <br>";
     }elseif($uperc >=90){
-        echo "<td style=\"background-color:#0f0; \">". $zeile['upload'] . "</td>";
+        echo "<td style=\"background-color:#0f0; \">". $zeile['upload'] . "</td> <br>";
     }
-    echo "<td>". $zeile['share'] . "</td>";
-    echo "<td>". $zeile['ip'] . "</td>";
-    echo "</tr>";
+    echo "<td>". $zeile['share'] . "</td> <br>";
+    echo "<td>". $zeile['ip'] . "</td> <br>";
+    echo "</tr> <br>";
 }
 echo '
-</table>
-</div>
+</table> <br>
+</div> <br>
 <!-- partial -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-</body>
-</html>';
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> <br>
+</body> <br>
+</html> <br>';
 
 mysqli_free_result( $db_erg );
 ?>
