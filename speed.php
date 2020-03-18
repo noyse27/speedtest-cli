@@ -1,11 +1,15 @@
 <?php
-require_once ('konfiguration.php');
+include_once ('konfiguration.php');
+include_once ('calculate.php');
+/*
 $limit = "Limit 10";
-if($_GET['all'] == 'y'){
+if(isset($_GET['all']) && $_GET['all'] == 'y'){
     $limit = '';
 }
+*/
 
-$db_link = mysqli_connect ($host,$user,$pw,$db,'3307');
+/*
+$db_link = mysqli_connect ($host,$user,$pw,$db,$port);
 $sql = "SELECT * FROM speedtest ORDER BY datum DESC $limit";
 
 $db_erg = mysqli_query( $db_link, $sql );
@@ -13,6 +17,34 @@ if ( ! $db_erg )
 {
     die('Ungültige Abfrage: ' . mysqli_error());
 }
+*/
+
+if (isset($_GET['pageno'])) {
+    $pageno = $_GET['pageno'];
+} else {
+    $pageno = 1;
+}
+$no_of_records_per_page = 10;
+$offset = ($pageno-1) * $no_of_records_per_page;
+
+$conn=mysqli_connect ($host,$user,$pw,$db,$port);
+// Check connection
+if (mysqli_connect_errno()){
+    echo "Failed to connect to MySQL: " . mysqli_connect_error();
+    die();
+}
+
+$total_pages_sql = "SELECT COUNT(*) FROM speedtest";
+$result = mysqli_query($conn,$total_pages_sql);
+$total_rows = mysqli_fetch_array($result)[0];
+$total_pages = ceil($total_rows / $no_of_records_per_page);
+
+$sql = "SELECT * FROM speedtest  order by id desc LIMIT $offset, $no_of_records_per_page";
+$db_erg= mysqli_query($conn,$sql);
+if ( ! $db_erg ) {
+    die('Ungültige Abfrage: ' . mysqli_error());
+}
+mysqli_close($conn);
 
 echo
 '<!DOCTYPE html>
@@ -30,9 +62,12 @@ echo
 <body>
 <!-- partial:index.partial.html -->
 <div class="container">
-  <table class="responsive-table">
-    <caption>Blackheart Speedtest</caption>
-    <thead>
+  <table class="responsive-table">    
+    <caption>Blackheart Speedtest <br> durchschnittliche Abweichung:'.calculate_sumabweichung().'<br> SOLL &#8595; '.$dmax.'MB/s / &#8593; '.$umax.' MB/s </caption>
+';  error_log($pageno);  ?>
+<caption class="pagination"><a href="?pageno=1">Aktuellste</a> | <span <?php if($pageno <= 1){ echo 'disabled="disabled"'; } ?>></span><a href="<?php if($pageno <= 1){ echo '#'; } else { echo "?pageno=".($pageno - 1); } ?>">&lt;&lt; 10</a> | <span <?php if($pageno >= $total_pages){ echo 'disabled="disabled"'; } ?>></span> <a href="<?php if($pageno >= $total_pages){ echo '#'; } else { echo "?pageno=".($pageno + 1); } ?>">10 &gt;&gt;</a> | <a href="?pageno=<?php echo $total_pages; ?>">&Auml;lteste</a></caption>
+<?php
+echo '    <thead>
       <tr>
         <th scope="col">Nr</th>
         <th scope="col">Server ID</th>
@@ -42,7 +77,9 @@ echo
         <th scope="col">Entfernung</th>
         <th scope="col">Ping</th>
         <th scope="col">Download</th>
+        <th scope="col">Down Abweichung</th>
         <th scope="col">Upload</th>
+        <th scope="col">Up Abweichung</th>
         <th scope="col">share</th>
         <th scope="col">IP</th>
       </tr>
@@ -50,6 +87,7 @@ echo
     <tbody>';
 while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
 {
+    $saveabweichung = 0;
     $time = new DateTime($zeile['datum']);
     $time->modify('+1 hour');
     $timef = $time->format('d.m.Y H:i');
@@ -62,40 +100,61 @@ while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
     $uperc = round($uprogress*100/$umax);
     $zeile['download'] = '<b>'.$dprogress.'</b> MB/s';
     $zeile['upload'] = '<b>'.$uprogress.'</b> MB/s';
+    if($zeile['downabweichung'] == '')
+    {
+        $dpercabw = calculate_abweichung($dperc);
+        $saveabweichung++ ;
+    }else{
+        $dpercabw = $zeile['downabweichung'];
+    }
+    if($zeile['upabweichung'] == ''){
+        $upercabw = calculate_abweichung($uperc);
+        $saveabweichung++;
+    }else{
+        $upercabw = $zeile['upabweichung'];
+    }
+    if ($saveabweichung > 0){
+        set_abweichung($dpercabw,$upercabw,$zeile['id']);
+    }
 
-    echo "<tr>";
-    echo "<td>". $zeile['id'] . "</td>";
-    echo "<td>". $zeile['server_id'] . "</td>";
-    echo "<td>". $zeile['sponsor'] . "</td>";
-    echo "<td>". $zeile['server_name'] . "</td>";
-    echo "<td>". $zeile['datum'] . "</td>";
-    echo "<td>". $zeile['distance'] . "</td>";
-    echo "<td>". $zeile['ping'] . "</td>";
+
+    echo "\n    <tr>\n";
+    echo "      <td>". $zeile['id'] . "</td>\n";
+    echo "	   <td>". $zeile['server_id'] . "</td>\n";
+    echo "      <td>". $zeile['sponsor'] . "</td>\n";
+    echo "      <td>". $zeile['server_name'] . "</td>\n";
+    echo "      <td>". $zeile['datum'] . "</td>\n";
+    echo "      <td>". $zeile['distance'] . "</td>\n";
+    echo "      <td>". $zeile['ping'] . "</td>\n";
     if($dperc < 50)
     {
-        echo "<td style=\"background-color:#f00; \">". $zeile['download'] . "</td>";
+        echo "      <td style=\"background-color:#f00; \">". $zeile['download'] . "</td>\n";
     }elseif ($dperc >=50 && $dperc < 90){
-        echo "<td style=\"background-color:#ff0; \">". $zeile['download'] . "</td>";
+        echo "      <td style=\"background-color:#ff0; \">". $zeile['download'] . "</td>\n";
     }elseif($dperc >=90){
-        echo "<td style=\"background-color:#0f0; \">". $zeile['download'] . "</td>";
+        echo "      <td style=\"background-color:#0f0; \">". $zeile['download'] . "</td>\n";
     }
+    echo "      <td><b>". $dpercabw . " % </b></td>\n";
     if($uperc < 50)
     {
-        echo "<td style=\"background-color:#f00; \">". $zeile['upload'] . "</td>";
+        echo "      <td style=\"background-color:#f00; \">". $zeile['upload'] . "</td>\n";
     }elseif ($uperc >=50 && $uperc < 90){
-        echo "<td style=\"background-color:#ff0; \">". $zeile['upload'] . "</td>";
+        echo "      <td style=\"background-color:#ff0; \">". $zeile['upload'] . "</td>\n";
     }elseif($uperc >=90){
-        echo "<td style=\"background-color:#0f0; \">". $zeile['upload'] . "</td>";
+        echo "      <td style=\"background-color:#0f0; \">". $zeile['upload'] . "</td>\n";
     }
-    echo "<td>". $zeile['share'] . "</td>";
-    echo "<td>". $zeile['ip'] . "</td>";
-    echo "</tr>";
+    echo "      <td><b>". $upercabw . " % </b></td>\n";
+    echo "      <td>". $zeile['share'] . "</td>\n";
+    echo "      <td>". $zeile['ip'] . "</td>\n";
+    echo "    </tr>\n";
 }
 echo '
-</table>
+  </table>
 </div>
 <!-- partial -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<p align="center">speedtest core from <a href = "https://github.com/sivel/speedtest-cli" target="_blank" rel="noopener">https://github.com/sivel/speedtest-cli</a></p>
+<img src="transparent_f.png" alt="vault II Logo" style="display: block;margin-left: auto;margin-right: auto;width:130px;height:180px;">
+<p align="center"><a href="?all=y" target="_self">Alle anzeigen</a></p>
 </body>
 </html>';
 
