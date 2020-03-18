@@ -1,7 +1,7 @@
 <?php
 function calculate_abweichung($down = 0, $up = 0){
     $erg = '';
-    if($down === 0 and $up > 0){
+    if($down === 0 && $up > 0){
         $erg = $up - 100;
     }
     if($up === 0 and $down > 0){
@@ -18,19 +18,18 @@ function calculate_abweichung($down = 0, $up = 0){
     }
 }
 
-function set_abweichung($down, $up, $id){
-    if($down !='' && $up != '' && $id != '')
-    {
+function set_abweichung($down, $up, $id)
+{
+    if ($down != '' && $up != '' && $id != '') {
         include('konfiguration.php');
-        $db_link = mysqli_connect ($host,$user,$pw,$db,$port);
+        $db_link = mysqli_connect($host, $user, $pw, $db, $port);
         $sql = "UPDATE speedtest set downabweichung = $down, upabweichung = $up where id = $id";
-        $db_erg = mysqli_query( $db_link, $sql );
-        if ( ! $db_erg )
-        {
+        $db_erg = mysqli_query($db_link, $sql);
+        if (!$db_erg) {
             die('Ungültige Abfrage: ' . mysqli_error());
+        } else {
+            return false;
         }
-    }else{
-        return false;
     }
 }
 

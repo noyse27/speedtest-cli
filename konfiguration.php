@@ -22,5 +22,7 @@ $db = 'tools';
 $dmax = 50;
 $umax = 10;
 $port = 3307;
+$fw = "07.19-76430 BETA";
+$boxid = 1;
 
 ?>

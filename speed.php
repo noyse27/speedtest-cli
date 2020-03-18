@@ -24,7 +24,18 @@ if (isset($_GET['pageno'])) {
 } else {
     $pageno = 1;
 }
-$no_of_records_per_page = 10;
+if(isset($_GET['all']) && $_GET['all'] == 'y'){
+    $no_of_records_per_page = '1000';
+}else{
+    $no_of_records_per_page = 10;
+}
+if(isset($_GET['boxid'])) {
+    $id = $_GET['boxid'];
+    $boxwhere = "WHERE boxid = $id";
+}else{
+    $boxwhere = "";
+}
+
 $offset = ($pageno-1) * $no_of_records_per_page;
 
 $conn=mysqli_connect ($host,$user,$pw,$db,$port);
@@ -39,7 +50,8 @@ $result = mysqli_query($conn,$total_pages_sql);
 $total_rows = mysqli_fetch_array($result)[0];
 $total_pages = ceil($total_rows / $no_of_records_per_page);
 
-$sql = "SELECT * FROM speedtest  order by id desc LIMIT $offset, $no_of_records_per_page";
+$sql = "SELECT * FROM speedtest $boxwhere order by id desc LIMIT $offset, $no_of_records_per_page";
+error_log($sql);
 $db_erg= mysqli_query($conn,$sql);
 if ( ! $db_erg ) {
     die('Ungültige Abfrage: ' . mysqli_error());
@@ -83,12 +95,15 @@ echo '    <thead>
         <th scope="col">Up Abweichung</th>
         <th scope="col">share</th>
         <th scope="col">IP</th>
+        <th scope="col">Fritzbox Nr</th>
+        <th scope="col">FB Firmware</th>
       </tr>
     </thead>
     <tbody>';
 while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
 {
     $saveabweichung = 0;
+    $id = $zeile['id'];
     $time = new DateTime($zeile['datum']);
     $time->modify('+1 hour');
     $timef = $time->format('d.m.Y H:i');
@@ -103,19 +118,31 @@ while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
     $zeile['upload'] = '<b>'.$uprogress.'</b> MB/s';
     if($zeile['downabweichung'] == '')
     {
-        $dpercabw = calculate_abweichung($dperc);
+        $dpercabw = calculate_abweichung($dperc,0);
         $saveabweichung++ ;
     }else{
         $dpercabw = $zeile['downabweichung'];
     }
     if($zeile['upabweichung'] == ''){
-        $upercabw = calculate_abweichung($uperc);
+        $upercabw = calculate_abweichung(0,$uperc);
         $saveabweichung++;
     }else{
         $upercabw = $zeile['upabweichung'];
     }
     if ($saveabweichung > 0){
         set_abweichung($dpercabw,$upercabw,$zeile['id']);
+    }
+    if($zeile['fw'] == '')
+    {
+        setfw($fw,$id);
+        $zeile['fw'] = $fw;
+
+    }
+    if($zeile['boxid'] == '')
+    {
+        setbox($boxid,$id);
+        $zeile['boxid'] = $boxid;
+
     }
 
 
@@ -147,6 +174,8 @@ while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
     echo "      <td><b>". $upercabw . " % </b></td>\n";
     echo "      <td>". $zeile['share'] . "</td>\n";
     echo "      <td>". $zeile['ip'] . "</td>\n";
+    echo "      <td>". $zeile['boxid'] . "</td>\n";
+    echo "      <td>". $zeile['fw'] . "</td>\n";
     echo "    </tr>\n";
 }
 echo '
@@ -160,4 +189,33 @@ echo '
 </html>';
 
 mysqli_free_result( $db_erg );
+
+function setfw($fw = null, $id)
+{
+    include('konfiguration.php');
+    $db_link = mysqli_connect($host, $user, $pw, $db, $port);
+
+    $sql = "UPDATE speedtest set fw = '$fw' where id = $id";
+    error_log (__LINE__.$sql);
+    $db_erg = mysqli_query($db_link, $sql);
+    if (!$db_erg) {
+        die('Ungültige Abfrage: ' . mysqli_error());
+    } else {
+        return false;
+
+    }
+}
+
+function setbox($boxid = NULL, $id)
+{
+    include('konfiguration.php');
+    $db_link = mysqli_connect($host, $user, $pw, $db, $port);
+    $sql = "UPDATE speedtest set boxid = $boxid where id = $id";
+    $db_erg = mysqli_query($db_link, $sql);
+    if (!$db_erg) {
+        die('Ungültige Abfrage: ' . mysqli_error());
+    } else {
+        return false;
+    }
+}
 ?>
