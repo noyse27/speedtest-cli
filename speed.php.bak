@@ -64,9 +64,8 @@ echo
 <div class="container">
   <table class="responsive-table">    
     <caption>Blackheart Speedtest <br> durchschnittliche Abweichung:'.calculate_sumabweichung().'<br> SOLL &#8595; '.$dmax.'MB/s / &#8593; '.$umax.' MB/s </caption>
-'; ?>
-<caption class="pagination"><a href="?pageno=1">Aktuellste</a> | <?php if($pageno <= 1){ echo "&lt;&lt; 10"; } else { echo "<a href=?pageno=".($pageno - 1).">&lt;&lt; 10</a>";} ?>| <?php if($pageno >= $total_pages){ echo '<span>10 &gt;&gt;</span>'; } else { echo '<a href="?pageno='.($pageno + 1).'">10 &gt;&gt;</a>'; } ?> | <a href="?pageno=<?php echo $total_pages; ?>">&Auml;lteste</a></caption>
-
+';  error_log($pageno);  ?>
+<caption class="pagination"><a href="?pageno=1">Aktuellste</a> | <span <?php if($pageno <= 1){ echo 'disabled="disabled"'; } ?>></span><a href="<?php if($pageno <= 1){ echo '#'; } else { echo "?pageno=".($pageno - 1); } ?>">&lt;&lt; 10</a> | <span <?php if($pageno >= $total_pages){ echo 'disabled="disabled"'; } ?>></span> <a href="<?php if($pageno >= $total_pages){ echo '#'; } else { echo "?pageno=".($pageno + 1); } ?>">10 &gt;&gt;</a> | <a href="?pageno=<?php echo $total_pages; ?>">&Auml;lteste</a></caption>
 <?php
 echo '    <thead>
       <tr>
