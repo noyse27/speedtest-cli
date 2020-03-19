@@ -29,11 +29,15 @@ if(isset($_GET['all']) && $_GET['all'] == 'y'){
 }else{
     $no_of_records_per_page = 10;
 }
+
 if(isset($_GET['boxid'])) {
-    $id = $_GET['boxid'];
-    $boxwhere = "WHERE boxid = $id";
+    $fbid = $_GET['boxid'];
+    $boxwhere = "WHERE boxid = $fbid";
+    $boxpaging = "&boxid=$fbid";
 }else{
+    $fbid = 0;
     $boxwhere = "";
+    $boxpaging = "";
 }
 
 $offset = ($pageno-1) * $no_of_records_per_page;
@@ -51,7 +55,6 @@ $total_rows = mysqli_fetch_array($result)[0];
 $total_pages = ceil($total_rows / $no_of_records_per_page);
 
 $sql = "SELECT * FROM speedtest $boxwhere order by id desc LIMIT $offset, $no_of_records_per_page";
-error_log($sql);
 $db_erg= mysqli_query($conn,$sql);
 if ( ! $db_erg ) {
     die('Ungültige Abfrage: ' . mysqli_error());
@@ -75,9 +78,9 @@ echo
 <!-- partial:index.partial.html -->
 <div class="container">
   <table class="responsive-table">    
-    <caption>Blackheart Speedtest <br> durchschnittliche Abweichung:'.calculate_sumabweichung().'<br> SOLL &#8595; '.$dmax.'MB/s / &#8593; '.$umax.' MB/s </caption>
+    <caption>Blackheart Speedtest <br> durchschnittliche Abweichung:'.calculate_sumabweichung($fbid).'<br> SOLL &#8595; '.$dmax.'MB/s / &#8593; '.$umax.' MB/s </caption>
 '; ?>
-<caption class="pagination"><a href="?pageno=1">Aktuellste</a> | <?php if($pageno <= 1){ echo "&lt;&lt; 10"; } else { echo "<a href=?pageno=".($pageno - 1).">&lt;&lt; 10</a>";} ?>| <?php if($pageno >= $total_pages){ echo '<span>10 &gt;&gt;</span>'; } else { echo '<a href="?pageno='.($pageno + 1).'">10 &gt;&gt;</a>'; } ?> | <a href="?pageno=<?php echo $total_pages; ?>">&Auml;lteste</a></caption>
+<caption class="pagination"><a href="?pageno=1">Aktuellste</a> | <?php if($pageno <= 1){ echo "&lt;&lt; 10"; } else { echo "<a href=?pageno=".($pageno - 1).$boxpaging.">&lt;&lt; 10</a>";} ?>| <?php if($pageno >= $total_pages){ echo '<span>10 &gt;&gt;</span>'; } else { echo '<a href="?pageno='.($pageno + 1).$boxpaging.'">10 &gt;&gt;</a>'; } ?> | <a href="?pageno=<?php echo $total_pages.$boxpaging; ?>">&Auml;lteste</a>&#160;&#160;&#160;Fritzbox: <?php echo PrintBoxes($pageno); ?></caption>
 
 <?php
 echo '    <thead>
@@ -103,7 +106,7 @@ echo '    <thead>
 while ($zeile = mysqli_fetch_array( $db_erg, MYSQLI_ASSOC))
 {
     $saveabweichung = 0;
-    $id = $zeile['id'];
+    $id = GetCountMeasurements($fbid);
     $time = new DateTime($zeile['datum']);
     $time->modify('+1 hour');
     $timef = $time->format('d.m.Y H:i');
@@ -196,12 +199,12 @@ function setfw($fw = null, $id)
     $db_link = mysqli_connect($host, $user, $pw, $db, $port);
 
     $sql = "UPDATE speedtest set fw = '$fw' where id = $id";
-    error_log (__LINE__.$sql);
     $db_erg = mysqli_query($db_link, $sql);
     if (!$db_erg) {
         die('Ungültige Abfrage: ' . mysqli_error());
     } else {
-        return false;
+        mysqli_close($db_link);
+        return true;
 
     }
 }
@@ -215,7 +218,51 @@ function setbox($boxid = NULL, $id)
     if (!$db_erg) {
         die('Ungültige Abfrage: ' . mysqli_error());
     } else {
-        return false;
+        mysqli_close($db_link);
+        return true;
+    }
+}
+function GetCountMeasurements($fbid){
+    include('konfiguration.php');
+    $db_link = mysqli_connect($host, $user, $pw, $db, $port);
+    if($fbid > 0){
+        $sql = "Select count(id) from speedtest where boxid = $fbid ";
+    }else{
+        $sql = "Select max(id) from speedtest";
+    }
+    $db_erg = mysqli_query($db_link, $sql);
+    if (!$db_erg) {
+        die('Ungültige Abfrage: ' . mysqli_error());
+    } else {
+        $anzahl = mysqli_fetch_row($db_erg);
+        mysqli_close($db_link);
+        return $anzahl[0];
+    }
+}
+
+function PrintBoxes($pageno = 0){
+    error_log($pageno);
+    include('konfiguration.php');
+    $erg = '';
+    $db_link = mysqli_connect($host, $user, $pw, $db, $port);
+    $sql = "select distinct(boxid) from speedtest";
+    $db_erg = mysqli_query($db_link, $sql);
+    if (!$db_erg) {
+        die('Ungültige Abfrage: ' . mysqli_error());
+    } else {
+        $anzahl = mysqli_fetch_row($db_erg);
+        error_log(print_r($anzahl,1));
+        foreach ($anzahl as $box){
+            $id = $box[0];
+            if($pageno > 1){
+                $erg .= '<a href = ?pageno='.$pageno.'&boxid='.$id.'>'.$id.'</a>&nbsp;';
+            }else{
+                $erg .= '<a href = ?boxid='.$id.'>'.$id.'</a>&nbsp;';
+            }
+        }
+        $erg .= '<a href =?pageno=1> Alle</a>';
+        mysqli_close($db_link);
+        return $erg;
     }
 }
 ?>

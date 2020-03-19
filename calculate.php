@@ -33,16 +33,23 @@ function set_abweichung($down, $up, $id)
     }
 }
 
-function calculate_sumabweichung(){
+function calculate_sumabweichung($fbid = 0){
     $i = 1;
     $down = 0;
     $up = 0;
     $erg = '';
     include('konfiguration.php');
     $db_link = mysqli_connect ($host,$user,$pw,$db,$port);
-    $sql1 = "SELECT downabweichung from speedtest";
-    $sql2 = "SELECT upabweichung from speedtest";
-    $sql3 = "SELECT max(id) from speedtest";
+
+    if($fbid > 0){
+        $sql1 = "SELECT downabweichung from speedtest where boxid = $fbid";
+        $sql2 = "SELECT upabweichung from speedtest where boxid = $fbid";
+        $sql3 = "Select count(id) from speedtest where boxid = $fbid ";
+    }else{
+        $sql1 = "SELECT downabweichung from speedtest";
+        $sql2 = "SELECT upabweichung from speedtest";
+        $sql3 = "Select max(id) from speedtest";
+    }
     $db_erg1 = mysqli_query( $db_link, $sql1 );
     if ( ! $db_erg1 )
     {
@@ -64,15 +71,28 @@ function calculate_sumabweichung(){
     while ($zeile2 = mysqli_fetch_array( $db_erg2, MYSQLI_ASSOC)){
         $up += $zeile2['upabweichung'];
     }
-    $anzahl = mysqli_fetch_row($db_erg3);
-
+    $erg3 = mysqli_fetch_row($db_erg3);
+    $anzahl = $erg3[0];
     $erg .= "&#8595;";
-    $erg .= round($down / $anzahl[0]);
-    $erg .= "%";
-    $erg .= " / &#8593;";
-    $erg .= round($up / $anzahl[0]);
-	$erg .= "%";
-    $erg .= "<br> Anzahl Messpunkte:". $anzahl[0];
+    if($anzahl > 0){
+        $erg .= round($down / $anzahl);
+        $erg .= "%";
+        $erg .= " / &#8593;";
+        $erg .= round($up / $anzahl);
+        $erg .= "%";
+    }else{
+        $erg .= 0;
+        $erg .= "%";
+        $erg .= " / &#8593;";
+        $erg .= 0;
+        $erg .= "%";
+    }
+    $erg .= "<br> Anzahl Messpunkte:". $anzahl;
+    if($fbid > 0){
+        $erg .= "<br> Fritzbox ID:". $fbid;
+    }else{
+        $erg .= "<br> Fritzbox ID: ALLE";
+    }
 	return $erg;
 }
 
